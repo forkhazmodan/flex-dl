@@ -1,0 +1,12 @@
+extends layout
+
+block content
+  body
+    h1 Search for a Video on YouTube
+    form(id="form" action="/download" method="POST" enctype="multipart/form-data")
+      input(type="hidden", name="id", id="id", value=(id) required  )
+      label(for="url") Enter search term:
+      input(type="text" name="url" id="url" value required)
+      button(type="submit") Convert
+    p#result
+    p#progress

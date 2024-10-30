@@ -1,0 +1,13 @@
+# Ignore the entire .idea folder
+.idea/
+# But don't ignore .idea/runConfigurations
+!.idea/runConfigurations/
+# Ensure that all files within .idea/runConfigurations are included
+!.idea/runConfigurations/**
+
+node_modules
+terraform/environments/dev/.terraform
+terraform/.terraform
+terraform/.terraform.lock.hcl
+terraform/environments/dev/.terraform.lock.hcl
+public/downloads

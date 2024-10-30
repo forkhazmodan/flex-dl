@@ -1,0 +1,128 @@
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    script.
+      // JavaScript to handle form submission with fetch
+      document.addEventListener('DOMContentLoaded', () => {
+        // Assuming the form has an ID of 'myForm'
+        const form = document.getElementById('form');
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();  // Prevent form from reloading the page
+
+          const id = document.querySelector('#id').value;
+          const url = document.querySelector('#url').value;
+          console.log(id, url)
+          if (id && url) {
+            const formData = new FormData();
+            formData.append('id', id);
+            formData.append('url', url);
+
+            fetch('/download', {
+              method: 'POST',
+              body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.url) {
+                fetchProgress(data.url);
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              document.querySelector('#result').textContent = 'An error occurred. Please try again.';
+            });
+          } else {
+            alert('Please enter both ID and URL.');
+          }
+        });
+
+        function fetchWithRetry(url, options = {}, retries = 3, retryDelay = 1000) {
+          return fetch(url, options)
+          .then(response => {
+            if (!response.ok) {
+              if (retries > 0 && response.status === 404) {
+                // If status is 404, retry with delay
+                console.warn(`Retrying... (${retries} attempts left)`);
+                return new Promise(resolve => setTimeout(resolve, retryDelay))
+                .then(() => fetchWithRetry(url, options, retries - 1, retryDelay));
+              } else {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+            }
+            return response.json();
+          });
+        }
+
+        // Function to fetch download progress
+        function fetchProgress(url) {
+          const progressInterval = setInterval(() => {
+            fetchWithRetry(url, {}, 3, 1000)
+            .then(progressData => {
+              console.log(progressData)
+              if (progressData.percent !== undefined) {
+                console.log(`Download Progress: ${progressData.percent}%`);
+                document.querySelector('#progress').textContent = `Download Progress: ${progressData.percent}%`;
+
+                if (progressData.url) {
+                  console.log('Download complete!');
+                  document.querySelector('#progress').textContent = 'Download complete!';
+                  clearInterval(progressInterval);  // Stop polling when download is complete
+
+                  const resultElement = document.querySelector('#result');
+                  resultElement.innerHTML = `Download link: <a href="${progressData.url}" target="_blank">Click here to download</a>`;
+                } else if (new Date(progressData.updatedAt) < new Date()) {
+                  document.querySelector('#result').textContent = 'No download URL found.';
+                }
+
+
+
+              } else {
+                console.error('No valid progress data found.');
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching progress:', error);
+              document.querySelector('#progress').textContent = 'Error fetching progress.';
+              clearInterval(progressInterval);  // Stop polling on error
+            });
+          }, 1000);  // Poll every 1 second
+        }
+      });
+
+      // Function to poll for progress using the PID
+      // function pollProgress(id) {
+      //   const interval = setInterval(() => {
+      //     fetch(`/download/${id}`)
+      //     .then(response => response.json())
+      //     .then(progressData => {
+      //       if (progressData.percent !== undefined) {
+      //         // Log progress to the console
+      //         console.log(`Download Progress: ${progressData.percent}%`);
+      //         console.log(`Speed: ${progressData.currentSpeed}`);
+      //         console.log(`ETA: ${progressData.eta}`);
+      //
+      //         // Optionally: display progress on the webpage
+      //         document.querySelector('#progress').textContent = `Download Progress: ${progressData.percent}%`;
+      //
+      //         // If download is complete (progress 100%), stop polling
+      //         if (progressData.percent === 100) {
+      //           clearInterval(interval);
+      //           console.log('Download complete!');
+      //         }
+      //       } else {
+      //         // Stop polling if no valid progress data is found (e.g., download finished or pid not found)
+      //         clearInterval(interval);
+      //         console.error('No progress information found or download finished.');
+      //       }
+      //     })
+      //     .catch(error => {
+      //       // Stop polling on error
+      //       clearInterval(interval);
+      //       console.error('Error fetching progress:', error);
+      //     });
+      //   }, 1000);  // Poll every 1 second
+      // }
+  body
+    block content
